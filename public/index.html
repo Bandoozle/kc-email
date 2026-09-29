@@ -109,8 +109,15 @@
     .workspace {
       display: grid;
       grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
-      gap: 22px;
+      gap: 18px;
       align-items: start;
+    }
+
+    .preview-column {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-width: 0;
     }
 
     .panel {
@@ -176,10 +183,8 @@
     .preview-note[data-state="error"],
     .configured-note[data-state="error"] { color: var(--danger); font-weight: 650; }
 
-    .status { min-height: 1.4em; }
-
     .fixed-block {
-      margin: 6px 0 18px;
+      margin: 6px 0 0;
       padding-top: 8px;
       border-top: 1px solid var(--line);
     }
@@ -196,8 +201,11 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 16px;
     }
+
+    .export-actions .status { margin: 0; }
+
+    .export-actions .status:not(:empty) { margin-top: 10px; }
 
     button {
       flex: 1 1 160px;
@@ -247,47 +255,48 @@
 
     .signature-preview img { max-width: none; }
 
-    .setup { margin-top: 28px; }
-
-    .setup > h2 { margin-bottom: 8px; }
-
-    .setup-intro {
-      margin: 0 0 16px;
-      color: var(--muted);
-      max-width: 70ch;
-    }
-
     .guides {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 18px;
     }
 
-    .guides ol { margin: 0; padding-left: 1.2rem; }
-
-    .guides li { margin: 0 0 8px; }
-
-    .callout {
-      margin: 18px 0 0;
-      padding: 14px 16px;
-      border-left: 3px solid var(--gold);
-      background: #f7f1e6;
-      border-radius: 0 12px 12px 0;
-      color: var(--ink);
+    .guide {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
     }
+
+    .guide summary {
+      cursor: pointer;
+      font-weight: 650;
+      padding: 12px 14px;
+    }
+
+    .guide ol {
+      margin: 0;
+      padding: 0 14px 12px 2rem;
+    }
+
+    .guide li { margin: 0 0 6px; }
+
+    .guide li:last-child { margin-bottom: 0; }
 
     .site-footer {
       width: min(1080px, calc(100% - 32px));
-      margin: 0 auto 28px;
+      margin: 18px auto 28px;
       color: var(--muted);
       font-size: 0.85rem;
     }
 
+    .site-footer p { margin: 0 0 8px; }
+
+    .site-footer p:last-child { margin-bottom: 0; }
+
     .site-footer a { color: var(--gold-ink); }
 
     @media (max-width: 860px) {
-      .workspace,
-      .guides { grid-template-columns: 1fr; }
+      .workspace { grid-template-columns: 1fr; }
 
       h1 { font-size: 1.45rem; }
 
@@ -335,53 +344,53 @@
             <li>Instagram, Facebook, and LinkedIn</li>
           </ul>
         </div>
-        <div class="actions">
-          <button id="copy-signature" class="button-primary" type="button">Copy signature</button>
-          <button id="download-html" class="button-secondary" type="button">Download HTML</button>
-        </div>
-        <p id="status" class="status" role="status" aria-live="assertive" aria-atomic="true"></p>
       </form>
-      <section class="panel preview-panel" aria-labelledby="preview-heading">
-        <h2 id="preview-heading">Preview</h2>
-        <p id="preview-note" class="preview-note"></p>
-        <div class="preview-scroll">
-          <div id="signature-preview" class="signature-preview" tabindex="-1"></div>
+      <div class="preview-column">
+        <section class="panel preview-panel" aria-labelledby="preview-heading">
+          <h2 id="preview-heading">Preview</h2>
+          <p id="preview-note" class="preview-note" hidden></p>
+          <div class="preview-scroll">
+            <div id="signature-preview" class="signature-preview" tabindex="-1"></div>
+          </div>
+        </section>
+        <div class="export-actions">
+          <div class="actions">
+            <button id="copy-signature" class="button-primary" type="button">Copy signature</button>
+            <button id="download-html" class="button-secondary" type="button">Download HTML</button>
+          </div>
+          <p id="status" class="status" role="status" aria-live="assertive" aria-atomic="true"></p>
         </div>
-      </section>
-    </div>
-    <section class="setup" aria-labelledby="setup-heading">
-      <h2 id="setup-heading">Add the signature</h2>
-      <p class="setup-intro">Paste with the normal paste command so the formatted signature is kept. Then send a test message and look at the copy you receive.</p>
-      <div class="guides">
-        <article class="panel">
-          <h2>Gmail</h2>
-          <ol>
-            <li>Copy the signature.</li>
-            <li>Settings → See all settings → General → Signature.</li>
-            <li>Create a signature and paste normally.</li>
-            <li>Choose defaults for new messages and replies.</li>
-            <li>Save Changes.</li>
-            <li>Send a test email and inspect the received message.</li>
-          </ol>
-        </article>
-        <article class="panel">
-          <h2>Apple Mail</h2>
-          <ol>
-            <li>Copy the signature.</li>
-            <li>Mail → Settings → Signatures.</li>
-            <li>Select the work account and add a signature.</li>
-            <li>Disable “Always match my default message font” if shown.</li>
-            <li>Paste normally, preserving formatting.</li>
-            <li>Set the default signature.</li>
-            <li>Send a test email and inspect the received message.</li>
-            <li>If formatting is lost, open the downloaded HTML in Safari and copy the rendered signature again.</li>
-          </ol>
-        </article>
+        <div class="guides">
+          <details class="guide">
+            <summary>Gmail</summary>
+            <ol>
+              <li>Copy the signature.</li>
+              <li>Settings → See all settings → General → Signature.</li>
+              <li>Create a signature and paste normally.</li>
+              <li>Choose defaults for new messages and replies.</li>
+              <li>Save Changes.</li>
+              <li>Send a test email and inspect the received message.</li>
+            </ol>
+          </details>
+          <details class="guide">
+            <summary>Apple Mail</summary>
+            <ol>
+              <li>Copy the signature.</li>
+              <li>Mail → Settings → Signatures.</li>
+              <li>Select the work account and add a signature.</li>
+              <li>Disable “Always match my default message font” if shown.</li>
+              <li>Paste normally, preserving formatting.</li>
+              <li>Set the default signature.</li>
+              <li>Send a test email and inspect the received message.</li>
+              <li>If formatting is lost, open the downloaded HTML in Safari and copy the rendered signature again.</li>
+            </ol>
+          </details>
+        </div>
       </div>
-      <p class="callout">Recipients can block remote images. When they do, the name, phone numbers, website, and location still show as text, and the logo and icons stay hidden until images are allowed. Mail clients differ, so a test message is the way to see the result. This page cannot promise that images will always appear.</p>
-    </section>
+    </div>
   </main>
   <footer class="site-footer">
+    <p>Recipients can block remote images. The name, numbers, and links still show; the logo and icons appear only when images are allowed.</p>
     <p>Contact and social icons by <a href="https://icons8.com">Icons8</a>.</p>
   </footer>
   <noscript>This page needs JavaScript to build the signature. The signature you copy does not use JavaScript.</noscript>
