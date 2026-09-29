@@ -77,7 +77,7 @@ If `productionOrigin` is missing or not a public HTTPS address, copying and down
 
 ## Use the generator
 
-1. Enter the full name. Mobile and office numbers are optional. If a number is left blank, that icon and number are omitted. The `|` separator appears only when both numbers are present.
+1. Enter the full name, a mobile number, and an office number. Each number must be 10 digits, or 11 digits starting with 1. Every signature includes both numbers and the `|` separator.
 2. Website, location, and social links stay the same for everyone.
 3. Choose **Copy signature**. Paste into Gmail or Apple Mail with the normal paste command.
 4. **Download HTML** saves a standalone file. Open it in a browser and copy the rendered signature if the mail client drops the formatting. In Apple Mail, Safari is the reliable browser for that second copy.

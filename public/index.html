@@ -132,9 +132,14 @@
 
     .req { color: var(--gold-ink); font-weight: 600; }
 
-    .optional { color: var(--muted); font-weight: 500; }
-
     .field { margin-bottom: 14px; }
+
+    .field-error {
+      margin: 6px 0 0;
+      color: var(--danger);
+      font-size: 0.9rem;
+      font-weight: 650;
+    }
 
     input[type="text"],
     input[type="tel"],
@@ -313,12 +318,14 @@
           <input id="name" name="name" type="text" autocomplete="off" value="Marco Areliano Suteja" aria-required="true">
         </div>
         <div class="field">
-          <label for="mobile">Mobile phone <span class="optional">(optional)</span></label>
-          <input id="mobile" name="mobile" type="tel" inputmode="tel" autocomplete="off" value="(604) 802-8120">
+          <label for="mobile">Mobile phone <span class="req">(required)</span></label>
+          <input id="mobile" name="mobile" type="tel" inputmode="tel" autocomplete="off" value="(604) 802-8120" required aria-required="true" aria-describedby="mobile-error">
+          <p id="mobile-error" class="field-error" hidden></p>
         </div>
         <div class="field">
-          <label for="office">Office phone <span class="optional">(optional)</span></label>
-          <input id="office" name="office" type="tel" inputmode="tel" autocomplete="off" value="(604) 925-5800">
+          <label for="office">Office phone <span class="req">(required)</span></label>
+          <input id="office" name="office" type="tel" inputmode="tel" autocomplete="off" value="(604) 925-5800" required aria-required="true" aria-describedby="office-error">
+          <p id="office-error" class="field-error" hidden></p>
         </div>
         <div class="fixed-block">
           <h2>Included on every signature</h2>

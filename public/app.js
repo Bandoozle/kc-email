@@ -51,6 +51,24 @@
     return "";
   }
 
+  function phoneProblem(value, kind) {
+    var label = kind === "mobile" ? "mobile" : "office";
+    var article = kind === "mobile" ? "a" : "an";
+    if (!cleanLine(value)) return "Enter " + article + " " + label + " phone number.";
+    if (!canadianTel(value)) return "Enter a valid " + label + " phone number.";
+    return "";
+  }
+
+  function detailProblems(details) {
+    var problems = [];
+    if (!details.name) problems.push({ id: "name", message: "Enter a full name." });
+    var mobileMessage = phoneProblem(details.mobile, "mobile");
+    var officeMessage = phoneProblem(details.office, "office");
+    if (mobileMessage) problems.push({ id: "mobile", message: mobileMessage });
+    if (officeMessage) problems.push({ id: "office", message: officeMessage });
+    return problems;
+  }
+
   function isPrivateIPv4(host) {
     var match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
     if (!match) return false;
@@ -334,6 +352,8 @@
     escapeHtml: escapeHtml,
     cleanLine: cleanLine,
     canadianTel: canadianTel,
+    phoneProblem: phoneProblem,
+    detailProblems: detailProblems,
     validateOrigin: validateOrigin,
     buildSignatureHtml: buildSignatureHtml,
     buildPlainText: buildPlainText,
@@ -385,12 +405,23 @@
 
   function exportSignature() {
     var details = readDetails();
-    if (!details.name) {
-      return { ok: false, message: "Enter a full name.", focus: "name" };
-    }
+    var problems = detailProblems(details);
     var origin = resolveOrigin();
     if (!origin.ok) {
-      return { ok: false, message: origin.message, focus: "" };
+      return {
+        ok: false,
+        message: origin.message,
+        focus: problems.length ? problems[0].id : "",
+        problems: problems
+      };
+    }
+    if (problems.length) {
+      return {
+        ok: false,
+        message: problems[0].message,
+        focus: problems[0].id,
+        problems: problems
+      };
     }
     var data = {
       name: details.name,
@@ -468,6 +499,7 @@
     var mobileInput = document.getElementById("mobile");
     var officeInput = document.getElementById("office");
     var imageWatch = 0;
+    var touched = { mobile: false, office: false };
 
     function showStatus(message, state) {
       statusEl.textContent = message;
@@ -523,7 +555,29 @@
       });
     }
 
+    function showPhoneErrors(problems, force) {
+      ["mobile", "office"].forEach(function (id) {
+        var input = document.getElementById(id);
+        var error = document.getElementById(id + "-error");
+        var problem = (problems || []).filter(function (item) { return item.id === id; })[0];
+        if ((force || touched[id]) && problem) {
+          error.hidden = false;
+          error.textContent = problem.message;
+          input.setAttribute("aria-invalid", "true");
+          return;
+        }
+        if (force || touched[id]) {
+          error.hidden = true;
+          error.textContent = "";
+          input.removeAttribute("aria-invalid");
+        }
+      });
+    }
+
     function failExport(result) {
+      touched.mobile = true;
+      touched.office = true;
+      showPhoneErrors(result.problems || [], true);
       showStatus(result.message, "error");
       if (result.focus) {
         var field = document.getElementById(result.focus);
@@ -538,7 +592,15 @@
     [nameInput, mobileInput, officeInput].forEach(function (input) {
       input.addEventListener("input", function () {
         clearStatus();
+        showPhoneErrors(detailProblems(readDetails()), false);
         render();
+      });
+    });
+
+    [mobileInput, officeInput].forEach(function (input) {
+      input.addEventListener("blur", function () {
+        touched[input.id] = true;
+        showPhoneErrors(detailProblems(readDetails()), false);
       });
     });
 
@@ -548,6 +610,7 @@
         failExport(exported);
         return;
       }
+      showPhoneErrors([], true);
       writeClipboard(exported.html, exported.plain).then(function (copied) {
         if (copied) {
           preview.classList.remove("is-selected");
@@ -575,6 +638,7 @@
         failExport(exported);
         return;
       }
+      showPhoneErrors([], true);
       var blob = new Blob([standaloneDocument(exported.html)], { type: "text/html;charset=utf-8" });
       var url = URL.createObjectURL(blob);
       var link = document.createElement("a");
