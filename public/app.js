@@ -518,7 +518,7 @@
       var assetBase = origin.ok ? origin.origin + "/email-assets/" : "email-assets/";
       preview.classList.remove("is-selected");
       preview.innerHTML = buildSignatureHtml({
-        name: details.name,
+        name: details.name || "Your name",
         mobile: details.mobile,
         office: details.office,
         assetBase: assetBase
@@ -527,10 +527,6 @@
         previewNote.hidden = false;
         previewNote.dataset.state = "error";
         previewNote.textContent = origin.message;
-      } else if (!details.name) {
-        previewNote.hidden = false;
-        previewNote.dataset.state = "";
-        previewNote.textContent = "Enter a full name to finish the signature.";
       } else {
         previewNote.hidden = true;
         previewNote.dataset.state = "";
