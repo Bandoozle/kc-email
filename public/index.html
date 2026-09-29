@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <title>Kosick Communications email signature</title>
+  <link rel="icon" href="email-assets/kosick-logo.png" type="image/png">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #161513;
+      --muted: #5c564c;
+      --gold: #b2976b;
+      --gold-ink: #6d5733;
+      --paper: #f3efe7;
+      --card: #fffcf8;
+      --line: #e4d9c8;
+      --ok: #1f6b45;
+      --danger: #8d2f2f;
+    }
+
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Avenir Next", Helvetica, Arial, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .skip {
+      position: absolute;
+      left: 12px;
+      top: -48px;
+      z-index: 3;
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .skip:focus { top: 12px; }
+
+    :focus-visible {
+      outline: 2px solid var(--gold-ink);
+      outline-offset: 2px;
+    }
+
+    .topbar {
+      background: #111111;
+      color: #f6f1e7;
+      border-bottom: 3px solid var(--gold);
+    }
+
+    .topbar-inner,
+    .page {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 0;
+    }
+
+    .brand-mark {
+      width: 72px;
+      height: 72px;
+      display: block;
+      flex: 0 0 auto;
+    }
+
+    .eyebrow {
+      margin: 0 0 2px;
+      color: var(--gold);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1, h2 { font-weight: 650; letter-spacing: -0.01em; }
+
+    h1 {
+      margin: 0;
+      font-size: 1.7rem;
+      line-height: 1.15;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.15rem;
+    }
+
+    .page { padding: 28px 0 56px; }
+
+    .lede {
+      margin: 0 0 22px;
+      max-width: 68ch;
+      color: var(--muted);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 12px 32px rgba(22, 21, 19, 0.05);
+    }
+
+    .preview-panel { border-top: 3px solid var(--gold); }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.92rem;
+      font-weight: 650;
+    }
+
+    .req { color: var(--gold-ink); font-weight: 600; }
+
+    .optional { color: var(--muted); font-weight: 500; }
+
+    .field { margin-bottom: 14px; }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="url"] {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid #d5cbbd;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 16px;
+    }
+
+    input[aria-invalid="true"] { border-color: var(--danger); }
+
+    .help,
+    .status,
+    .preview-note,
+    .configured-note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      overflow-wrap: anywhere;
+    }
+
+    .help[data-state="success"],
+    .status[data-state="success"],
+    .configured-note[data-state="success"] { color: var(--ok); }
+
+    .help[data-state="error"],
+    .status[data-state="error"],
+    .preview-note[data-state="error"],
+    .configured-note[data-state="error"] { color: var(--danger); font-weight: 650; }
+
+    .status { min-height: 1.4em; }
+
+    .fixed-block {
+      margin: 6px 0 18px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    .fixed-block h2 { font-size: 0.95rem; margin-bottom: 8px; }
+
+    .fixed-block ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      flex: 1 1 160px;
+      min-height: 46px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font: inherit;
+      font-size: 0.98rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .button-primary {
+      background: #111111;
+      color: #f6f1e7;
+      border: 1px solid #111111;
+    }
+
+    .button-primary:hover { border-color: var(--gold); background: #231f1b; }
+
+    .button-secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid #cbbba3;
+    }
+
+    .button-secondary:hover { border-color: var(--gold-ink); background: #faf6ef; }
+
+    .preview-note { margin-top: 0; margin-bottom: 12px; }
+
+    .preview-scroll {
+      overflow-x: auto;
+      max-width: 100%;
+      background: #ffffff;
+      border: 1px solid #ece4d8;
+      border-radius: 12px;
+      padding: 18px 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .signature-preview { display: inline-block; min-width: min-content; }
+
+    .signature-preview.is-selected {
+      outline: 2px solid var(--gold);
+      outline-offset: 6px;
+    }
+
+    .signature-preview img { max-width: none; }
+
+    .setup { margin-top: 28px; }
+
+    .setup > h2 { margin-bottom: 8px; }
+
+    .setup-intro {
+      margin: 0 0 16px;
+      color: var(--muted);
+      max-width: 70ch;
+    }
+
+    .guides {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .guides ol { margin: 0; padding-left: 1.2rem; }
+
+    .guides li { margin: 0 0 8px; }
+
+    .callout {
+      margin: 18px 0 0;
+      padding: 14px 16px;
+      border-left: 3px solid var(--gold);
+      background: #f7f1e6;
+      border-radius: 0 12px 12px 0;
+      color: var(--ink);
+    }
+
+    .site-footer {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto 28px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .site-footer a { color: var(--gold-ink); }
+
+    @media (max-width: 860px) {
+      .workspace,
+      .guides { grid-template-columns: 1fr; }
+
+      h1 { font-size: 1.45rem; }
+
+      .page { padding-top: 20px; }
+
+      .panel { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#signature-preview">Skip to signature preview</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <img class="brand-mark" src="email-assets/kosick-logo.png" width="72" height="72" alt="Kosick Communications">
+      <div>
+        <p class="eyebrow">Kosick Communications</p>
+        <h1>Email signature</h1>
+      </div>
+    </div>
+  </header>
+  <main class="page">
+    <p class="lede">Enter your contact details, check the preview, then copy the signature into Gmail or Apple Mail. Details stay in this browser. Nothing is uploaded or stored.</p>
+    <div class="workspace">
+      <form id="signature-form" class="panel" autocomplete="off">
+        <h2>Your details</h2>
+        <div class="field">
+          <label for="name">Full name <span class="req">(required)</span></label>
+          <input id="name" name="name" type="text" autocomplete="off" value="Marco Areliano Suteja" aria-required="true">
+        </div>
+        <div class="field">
+          <label for="mobile">Mobile phone <span class="optional">(optional)</span></label>
+          <input id="mobile" name="mobile" type="tel" inputmode="tel" autocomplete="off" value="(604) 802-8120">
+        </div>
+        <div class="field">
+          <label for="office">Office phone <span class="optional">(optional)</span></label>
+          <input id="office" name="office" type="tel" inputmode="tel" autocomplete="off" value="(604) 925-5800">
+        </div>
+        <div class="field" id="origin-field">
+          <label for="origin">Permanent image host</label>
+          <input id="origin" name="origin" type="url" inputmode="url" spellcheck="false" autocapitalize="none" autocomplete="off" placeholder="https://example.com" aria-describedby="origin-help">
+          <p id="origin-help" class="help">Enter the stable production domain for this generator, not a temporary preview or deployment URL. Copied and downloaded signatures load images from that domain.</p>
+        </div>
+        <p id="origin-configured" class="configured-note" hidden></p>
+        <div class="fixed-block">
+          <h2>Included on every signature</h2>
+          <ul>
+            <li>Website: www.kosick.com</li>
+            <li>Location: Vancouver &amp; Calgary, Canada</li>
+            <li>Instagram, Facebook, and LinkedIn</li>
+          </ul>
+        </div>
+        <div class="actions">
+          <button id="copy-signature" class="button-primary" type="button">Copy signature</button>
+          <button id="download-html" class="button-secondary" type="button">Download HTML</button>
+        </div>
+        <p id="status" class="status" role="status" aria-live="assertive" aria-atomic="true"></p>
+      </form>
+      <section class="panel preview-panel" aria-labelledby="preview-heading">
+        <h2 id="preview-heading">Preview</h2>
+        <p id="preview-note" class="preview-note"></p>
+        <div class="preview-scroll">
+          <div id="signature-preview" class="signature-preview" tabindex="-1"></div>
+        </div>
+      </section>
+    </div>
+    <section class="setup" aria-labelledby="setup-heading">
+      <h2 id="setup-heading">Add the signature</h2>
+      <p class="setup-intro">Paste with the normal paste command so the formatted signature is kept. Then send a test message and look at the copy you receive.</p>
+      <div class="guides">
+        <article class="panel">
+          <h2>Gmail</h2>
+          <ol>
+            <li>Copy the signature.</li>
+            <li>Settings → See all settings → General → Signature.</li>
+            <li>Create a signature and paste normally.</li>
+            <li>Choose defaults for new messages and replies.</li>
+            <li>Save Changes.</li>
+            <li>Send a test email and inspect the received message.</li>
+          </ol>
+        </article>
+        <article class="panel">
+          <h2>Apple Mail</h2>
+          <ol>
+            <li>Copy the signature.</li>
+            <li>Mail → Settings → Signatures.</li>
+            <li>Select the work account and add a signature.</li>
+            <li>Disable “Always match my default message font” if shown.</li>
+            <li>Paste normally, preserving formatting.</li>
+            <li>Set the default signature.</li>
+            <li>Send a test email and inspect the received message.</li>
+            <li>If formatting is lost, open the downloaded HTML in Safari and copy the rendered signature again.</li>
+          </ol>
+        </article>
+      </div>
+      <p class="callout">Recipients can block remote images. When they do, the name, phone numbers, website, and location still show as text, and the logo and icons stay hidden until images are allowed. Mail clients differ, so a test message is the way to see the result. This page cannot promise that images will always appear.</p>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <p>Contact and social icons by <a href="https://icons8.com">Icons8</a>.</p>
+  </footer>
+  <noscript>This page needs JavaScript to build the signature. The signature you copy does not use JavaScript.</noscript>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
