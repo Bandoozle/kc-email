@@ -4,6 +4,8 @@
   var WEBSITE_LABEL = "www.kosick.com";
   var WEBSITE_URL = "https://www.kosick.com";
   var LOCATION = "Vancouver & Calgary, Canada";
+  var OFFICE_PHONE = "(604) 925-5800";
+  var OFFICE_TEL = "+16049255800";
   var SOCIAL = [
     {
       file: "kosick-instagram.png",
@@ -63,9 +65,7 @@
     var problems = [];
     if (!details.name) problems.push({ id: "name", message: "Enter a full name." });
     var mobileMessage = phoneProblem(details.mobile, "mobile");
-    var officeMessage = phoneProblem(details.office, "office");
     if (mobileMessage) problems.push({ id: "mobile", message: mobileMessage });
-    if (officeMessage) problems.push({ id: "office", message: officeMessage });
     return problems;
   }
 
@@ -211,10 +211,10 @@
     );
   }
 
-  function phoneCells(assetBase, kind, display) {
+  function phoneCells(assetBase, kind, display, explicitTel) {
     var file = kind === "mobile" ? "kosick-mobile.png" : "kosick-office.png";
     var alt = kind === "mobile" ? "Mobile phone" : "Office phone";
-    var tel = canadianTel(display);
+    var tel = explicitTel || canadianTel(display);
     var href = tel ? "tel:" + tel : "";
     var icon = imgTag(assetBase + file, 12, 12, alt);
     var iconInner = href
@@ -241,7 +241,6 @@
     var assetBase = data.assetBase;
     var name = data.name || "";
     var mobile = data.mobile || "";
-    var office = data.office || "";
     var rows = [];
 
     if (name) {
@@ -253,19 +252,17 @@
       );
     }
 
-    if (mobile || office) {
-      var groups = [];
-      if (mobile) groups.push(phoneCells(assetBase, "mobile", mobile));
-      if (office) groups.push(phoneCells(assetBase, "office", office));
-      var separator =
-        '<td valign="middle" style="padding:0 6px;vertical-align:middle;' + CONTACT_STYLE + '">|</td>';
-      rows.push(
-        '<tr><td style="padding:' + (rows.length ? 3 : 0) + 'px 0 0 0;">' +
-        "<table " + TABLE + "><tbody><tr>" +
-        groups.join(separator) +
-        "</tr></tbody></table></td></tr>"
-      );
-    }
+    var groups = [];
+    if (mobile) groups.push(phoneCells(assetBase, "mobile", mobile));
+    groups.push(phoneCells(assetBase, "office", OFFICE_PHONE, OFFICE_TEL));
+    var separator =
+      '<td valign="middle" style="padding:0 6px;vertical-align:middle;' + CONTACT_STYLE + '">|</td>';
+    rows.push(
+      '<tr><td style="padding:' + (rows.length ? 3 : 0) + 'px 0 0 0;">' +
+      "<table " + TABLE + "><tbody><tr>" +
+      groups.join(separator) +
+      "</tr></tbody></table></td></tr>"
+    );
 
     var websiteIcon = imgTag(assetBase + "kosick-website.png", 12, 12, "Website");
     var websiteLinkedIcon =
@@ -325,7 +322,7 @@
     var lines = [];
     if (data.name) lines.push(data.name);
     if (data.mobile) lines.push("Mobile: " + data.mobile);
-    if (data.office) lines.push("Office: " + data.office);
+    lines.push("Office: " + OFFICE_PHONE);
     lines.push("Website: " + WEBSITE_URL);
     lines.push("Location: " + LOCATION);
     SOCIAL.forEach(function (item) {
@@ -360,6 +357,8 @@
     standaloneDocument: standaloneDocument,
     WEBSITE_URL: WEBSITE_URL,
     LOCATION: LOCATION,
+    OFFICE_PHONE: OFFICE_PHONE,
+    OFFICE_TEL: OFFICE_TEL,
     SOCIAL: SOCIAL
   };
 
@@ -399,7 +398,7 @@
     return {
       name: cleanLine(document.getElementById("name").value),
       mobile: cleanLine(document.getElementById("mobile").value),
-      office: cleanLine(document.getElementById("office").value)
+      office: OFFICE_PHONE
     };
   }
 
@@ -497,9 +496,8 @@
     var statusEl = document.getElementById("status");
     var nameInput = document.getElementById("name");
     var mobileInput = document.getElementById("mobile");
-    var officeInput = document.getElementById("office");
     var imageWatch = 0;
-    var touched = { mobile: false, office: false };
+    var touched = { mobile: false };
 
     function showStatus(message, state) {
       statusEl.textContent = message;
@@ -520,7 +518,7 @@
       preview.innerHTML = buildSignatureHtml({
         name: details.name || "Your name",
         mobile: details.mobile,
-        office: details.office,
+        office: OFFICE_PHONE,
         assetBase: assetBase
       });
       if (!origin.ok) {
@@ -552,7 +550,7 @@
     }
 
     function showPhoneErrors(problems, force) {
-      ["mobile", "office"].forEach(function (id) {
+      ["mobile"].forEach(function (id) {
         var input = document.getElementById(id);
         var error = document.getElementById(id + "-error");
         var problem = (problems || []).filter(function (item) { return item.id === id; })[0];
@@ -572,7 +570,6 @@
 
     function failExport(result) {
       touched.mobile = true;
-      touched.office = true;
       showPhoneErrors(result.problems || [], true);
       showStatus(result.message, "error");
       if (result.focus) {
@@ -585,7 +582,7 @@
       event.preventDefault();
     });
 
-    [nameInput, mobileInput, officeInput].forEach(function (input) {
+    [nameInput, mobileInput].forEach(function (input) {
       input.addEventListener("input", function () {
         clearStatus();
         showPhoneErrors(detailProblems(readDetails()), false);
@@ -593,7 +590,7 @@
       });
     });
 
-    [mobileInput, officeInput].forEach(function (input) {
+    [mobileInput].forEach(function (input) {
       input.addEventListener("blur", function () {
         touched[input.id] = true;
         showPhoneErrors(detailProblems(readDetails()), false);

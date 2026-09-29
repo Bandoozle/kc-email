@@ -141,6 +141,24 @@
 
     .field { margin-bottom: 14px; }
 
+    .static-label {
+      margin: 0 0 6px;
+      font-size: 0.92rem;
+      font-weight: 650;
+    }
+
+    .static-value {
+      margin: 0;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f6f6f6;
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 22px;
+    }
+
     .field-error {
       margin: 6px 0 0;
       color: var(--danger);
@@ -331,13 +349,12 @@
         </div>
         <div class="field">
           <label for="mobile">Mobile phone <span class="req">(required)</span></label>
-          <input id="mobile" name="mobile" type="tel" inputmode="tel" autocomplete="off" value="(604) 802-8120" required aria-required="true" aria-describedby="mobile-error">
+          <input id="mobile" name="mobile" type="tel" inputmode="tel" autocomplete="off" placeholder="Enter your mobile number" required aria-required="true" aria-describedby="mobile-error">
           <p id="mobile-error" class="field-error" hidden></p>
         </div>
         <div class="field">
-          <label for="office">Office phone <span class="req">(required)</span></label>
-          <input id="office" name="office" type="tel" inputmode="tel" autocomplete="off" value="(604) 925-5800" required aria-required="true" aria-describedby="office-error">
-          <p id="office-error" class="field-error" hidden></p>
+          <p class="static-label">Office phone</p>
+          <p class="static-value">(604) 925-5800</p>
         </div>
         <div class="fixed-block">
           <h2>Included on every signature</h2>

@@ -1,6 +1,6 @@
 # Kosick Communications email signature
 
-A static generator for Kosick email signatures. Coworkers enter a name and phone numbers, preview the signature, and copy it into Gmail or Apple Mail. The page and the signature images are hosted together. Signatures do not load images from the Kosick WordPress site.
+A static generator for Kosick email signatures. Coworkers enter a name and mobile number, preview the signature, and copy it into Gmail or Apple Mail. The office number is always (604) 925-5800. The page and the signature images are hosted together. Signatures do not load images from the Kosick WordPress site.
 
 Nothing is stored or sent to a server. There is no build step, database, or API key.
 
@@ -77,7 +77,7 @@ If `productionOrigin` is missing or not a public HTTPS address, copying and down
 
 ## Use the generator
 
-1. Enter the full name, a mobile number, and an office number. Each number must be 10 digits, or 11 digits starting with 1. Every signature includes both numbers and the `|` separator.
+1. Enter the full name and a mobile number. The mobile number must be 10 digits, or 11 digits starting with 1. The office number is fixed at (604) 925-5800. Every signature includes both numbers and the `|` separator.
 2. Website, location, and social links stay the same for everyone.
 3. Choose **Copy signature**. Paste into Gmail or Apple Mail with the normal paste command.
 4. **Download HTML** saves a standalone file. Open it in a browser and copy the rendered signature if the mail client drops the formatting. In Apple Mail, Safari is the reliable browser for that second copy.
