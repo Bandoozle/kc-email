@@ -20,7 +20,7 @@ From this folder, serve the `public` directory:
 npx --yes serve public
 ```
 
-Open the URL it prints. Use Copy signature only after the permanent host is set, either in `public/config.js` or in the Permanent image host field. Image addresses in a copied signature must be the public production origin, not `localhost`.
+Open the URL it prints. Copied and downloaded signatures load images from `https://kc-email.vercel.app/email-assets/`.
 
 ## Deploy on Vercel
 
@@ -40,11 +40,9 @@ Do not point `productionOrigin` at a preview deployment. Preview URLs change, an
 3. Accept the settings from `vercel.json`, or choose Framework preset **Other**, an empty build command, and output directory **public**.
 4. Open the production domain and confirm this address loads in a private window, with no Vercel login:
 
-   `https://YOUR-DOMAIN/email-assets/kosick-logo.png`
+   `https://kc-email.vercel.app/email-assets/kosick-logo.png`
 
-5. In `public/config.js`, set `productionOrigin` to that origin only, for example `"https://YOUR-DOMAIN"`. No path, query, or fragment.
-6. Deploy again with `vercel --prod`.
-7. Reload the generator. Copy a signature and confirm every image address starts with `https://YOUR-DOMAIN/email-assets/`.
+`productionOrigin` in `public/config.js` is `https://kc-email.vercel.app`. Leave that value in place.
 
 ### Import a Git repository
 
@@ -54,7 +52,7 @@ Do not point `productionOrigin` at a preview deployment. Preview URLs change, an
 4. Build command: leave empty.
 5. Output directory: **public**.
 6. Install command: leave empty.
-7. Deploy, then set `productionOrigin` and redeploy as above.
+7. Deploy. `productionOrigin` is already `https://kc-email.vercel.app`.
 
 ### Keep the images public
 
@@ -75,7 +73,7 @@ Check each file in a private window:
 
 After people start using signatures, do not change the production domain and do not rename or remove files in `/email-assets/`. You can update the generator and redeploy. Existing messages request those exact image addresses.
 
-Until `productionOrigin` is set, the page still previews with local images, and Copy signature and Download HTML stay unavailable until a public HTTPS origin is entered.
+If `productionOrigin` is missing or not a public HTTPS address, copying and downloading are blocked and the page shows a configuration error.
 
 ## Use the generator
 

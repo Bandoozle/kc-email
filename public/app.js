@@ -359,9 +359,20 @@
 
   function resolveOrigin() {
     var configured = configuredOriginRaw();
-    if (configured) return validateOrigin(configured);
-    var input = document.getElementById("origin");
-    return validateOrigin(input ? input.value : "");
+    if (!configured) {
+      return {
+        ok: false,
+        message: "Signature images are not configured. Set productionOrigin in config.js to a public HTTPS address."
+      };
+    }
+    var result = validateOrigin(configured);
+    if (!result.ok) {
+      return {
+        ok: false,
+        message: "Signature images are not configured. The productionOrigin in config.js cannot be used. " + result.message
+      };
+    }
+    return result;
   }
 
   function readDetails() {
@@ -379,12 +390,7 @@
     }
     var origin = resolveOrigin();
     if (!origin.ok) {
-      var field = document.getElementById("origin-field");
-      return {
-        ok: false,
-        message: origin.message,
-        focus: field && !field.hidden ? "origin" : ""
-      };
+      return { ok: false, message: origin.message, focus: "" };
     }
     var data = {
       name: details.name,
@@ -458,29 +464,10 @@
     var preview = document.getElementById("signature-preview");
     var previewNote = document.getElementById("preview-note");
     var statusEl = document.getElementById("status");
-    var originField = document.getElementById("origin-field");
-    var originInput = document.getElementById("origin");
-    var originHelp = document.getElementById("origin-help");
-    var originConfigured = document.getElementById("origin-configured");
     var nameInput = document.getElementById("name");
     var mobileInput = document.getElementById("mobile");
     var officeInput = document.getElementById("office");
-    var originTouched = false;
     var imageWatch = 0;
-
-    var configured = configuredOriginRaw();
-    if (!configured) {
-      originField.hidden = false;
-      originConfigured.hidden = true;
-    } else {
-      originField.hidden = true;
-      originConfigured.hidden = false;
-      var checked = validateOrigin(configured);
-      originConfigured.textContent = checked.ok
-        ? "Copied and downloaded signatures load images from " + checked.origin + "/email-assets/."
-        : "The productionOrigin in config.js cannot be used. " + checked.message;
-      originConfigured.dataset.state = checked.ok ? "success" : "error";
-    }
 
     function showStatus(message, state) {
       statusEl.textContent = message;
@@ -491,33 +478,6 @@
     function clearStatus() {
       statusEl.textContent = "";
       delete statusEl.dataset.state;
-    }
-
-    function updateOriginHelp() {
-      if (originField.hidden) return;
-      var value = originInput.value.trim();
-      originInput.removeAttribute("aria-invalid");
-      if (!value) {
-        originHelp.dataset.state = "";
-        originHelp.textContent =
-          "Enter the stable production domain for this generator, not a temporary preview or deployment URL. Copied and downloaded signatures load images from that domain.";
-        return;
-      }
-      var result = validateOrigin(value);
-      if (result.ok) {
-        originHelp.dataset.state = "success";
-        originHelp.textContent = "Signature images will use " + result.origin + "/email-assets/.";
-        return;
-      }
-      if (originTouched || value.length > "https://".length) {
-        originHelp.dataset.state = "error";
-        originHelp.textContent = result.message;
-        originInput.setAttribute("aria-invalid", "true");
-        return;
-      }
-      originHelp.dataset.state = "";
-      originHelp.textContent =
-        "Enter the stable production domain for this generator, not a temporary preview or deployment URL.";
     }
 
     function render() {
@@ -531,21 +491,19 @@
         office: details.office,
         assetBase: assetBase
       });
-      if (!details.name) {
+      if (!origin.ok) {
+        previewNote.hidden = false;
+        previewNote.dataset.state = "error";
+        previewNote.textContent = origin.message;
+      } else if (!details.name) {
+        previewNote.hidden = false;
         previewNote.dataset.state = "";
-        previewNote.textContent = origin.ok
-          ? "Enter a full name to finish the signature. Images will load from " + origin.origin + "/email-assets/."
-          : "Enter a full name. Preview images are local until a permanent image host is set.";
-      } else if (!origin.ok) {
-        previewNote.dataset.state = "";
-        previewNote.textContent =
-          "Preview uses images from this page. Enter the permanent image host before copying or downloading. It must be the stable production domain, not a temporary preview or deployment URL.";
+        previewNote.textContent = "Enter a full name to finish the signature.";
       } else {
+        previewNote.hidden = true;
         previewNote.dataset.state = "";
-        previewNote.textContent =
-          "Copied and downloaded signatures load images from " + origin.origin + "/email-assets/.";
+        previewNote.textContent = "";
       }
-      updateOriginHelp();
       watchImages(origin.ok);
     }
 
@@ -577,26 +535,16 @@
       event.preventDefault();
     });
 
-    [nameInput, mobileInput, officeInput, originInput].forEach(function (input) {
-      if (!input) return;
+    [nameInput, mobileInput, officeInput].forEach(function (input) {
       input.addEventListener("input", function () {
         clearStatus();
         render();
       });
     });
 
-    if (originInput) {
-      originInput.addEventListener("blur", function () {
-        originTouched = true;
-        updateOriginHelp();
-      });
-    }
-
     document.getElementById("copy-signature").addEventListener("click", function () {
       var exported = exportSignature();
       if (!exported.ok) {
-        originTouched = true;
-        updateOriginHelp();
         failExport(exported);
         return;
       }
@@ -624,8 +572,6 @@
     document.getElementById("download-html").addEventListener("click", function () {
       var exported = exportSignature();
       if (!exported.ok) {
-        originTouched = true;
-        updateOriginHelp();
         failExport(exported);
         return;
       }
