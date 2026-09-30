@@ -7,7 +7,7 @@ Nothing is stored or sent to a server. There is no build step, database, or API 
 ## Files
 
 - `public/index.html` — generator page
-- `public/app.js` — preview, copy, and download
+- `public/app.js` — preview, image checks, copy, download, and installed-signature check
 - `public/config.js` — permanent image host
 - `public/email-assets/` — logo and icons used in signatures
 - `vercel.json` — serves `public` with no build
@@ -79,14 +79,46 @@ If `productionOrigin` is missing or not a public HTTPS address, copying and down
 
 1. Enter the full name and a mobile number. The mobile number must be 10 digits, or 11 digits starting with 1. The office number is fixed at (604) 925-5800. Every signature includes both numbers and the `|` separator.
 2. Website, location, and social links stay the same for everyone.
-3. Choose **Copy signature**. Paste into Gmail or Apple Mail with the normal paste command.
-4. **Download HTML** saves a standalone file. Open it in a browser and copy the rendered signature if the mail client drops the formatting. In Apple Mail, Safari is the reliable browser for that second copy.
+3. Wait for the preview images to load. **Copy signature** and **Download HTML** stay blocked until all eight images from `https://kc-email.vercel.app/email-assets/` have loaded with real dimensions. If one fails, the page names the file and shows **Retry images**.
+4. Choose **Copy signature**. Paste it normally (Ctrl+V or Command+V) into Gmail or Apple Mail. Do not use paste without formatting.
+5. Save your mail settings.
+6. Copy the saved signature back out of Gmail or Apple Mail and paste it into **Check installed signature**.
+7. Send yourself a test email and read the received message.
 
-Gmail: Settings → See all settings → General → Signature. Create a signature, paste, choose defaults for new messages and replies, then Save Changes.
+**Download HTML** saves a standalone file. Open it in a browser and copy the rendered signature if the mail client drops the formatting. In Apple Mail, Safari is the reliable browser for that second copy.
 
-Apple Mail: Mail → Settings → Signatures. Select the work account, add a signature, and turn off “Always match my default message font” if it appears. Paste, set the default signature, and send a test.
+Gmail: Settings → See all settings → General → Signature. Create a signature, paste normally, choose defaults for new messages and replies, then Save Changes.
 
-Recipients can block remote images. The text and links still show; the logo and icons appear only when images are allowed. Send a test and read the received message before sharing the signature widely.
+Apple Mail: Mail → Settings → Signatures. Select the work account, add a signature, and turn off “Always match my default message font” if it appears. Paste normally, set the default signature, and close Settings so it saves.
+
+### How copying works
+
+The copied data has two formats: `text/html` containing only the signature table (inline styles, absolute HTTPS image URLs on the production host) and `text/plain` with the same details as text.
+
+- Browsers with the Clipboard API write both formats with `navigator.clipboard.write`.
+- Browsers without it, or when that write is rejected, use a temporary `copy` event handler that sets both formats. The handler is removed right after.
+- If the browser rejects both, the page says nothing was copied and shows **Select signature for manual copy**. That selects the signature so you can press Command+C or Ctrl+C.
+
+### Check installed signature
+
+Paste your saved signature into the check box. The page reads the pasted HTML as text and never renders it. It reports:
+
+- Whether all eight production image addresses are still present.
+- Missing images, and `file:`, `blob:`, empty, or unexpected image addresses. These mean the copy went wrong; copy again with formatting.
+- `cid:` attachments and mail-provider image proxies (for example Gmail's `googleusercontent.com`) as inconclusive. Mail clients often rewrite images this way, so this is not treated as broken.
+- A plain-text-only paste. That means formatting was lost; copy again and paste normally.
+
+This checks what was copied into your mail settings. It does not check delivery. Only a received test email shows what recipients see.
+
+Recipients can block remote images, and email clients render HTML differently. The generator cannot guarantee how every client displays the signature and does not bypass image blocking. The text and links still show; the logo and icons appear only when images are allowed. Send a test and read the received message before sharing the signature widely.
+
+## Tests
+
+`tests/signature-check.js` checks the signature builder, image-load assessment, and installed-signature inspection. It needs only Node:
+
+```bash
+node tests/signature-check.js
+```
 
 ## Image credits
 

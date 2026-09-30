@@ -6,6 +6,16 @@
   var LOCATION = "Vancouver & Calgary, Canada";
   var OFFICE_PHONE = "(604) 925-5800";
   var OFFICE_TEL = "+16049255800";
+  var ASSET_FILES = [
+    "kosick-logo.png",
+    "kosick-mobile.png",
+    "kosick-office.png",
+    "kosick-website.png",
+    "kosick-location.png",
+    "kosick-instagram.png",
+    "kosick-facebook.png",
+    "kosick-linkedin.png"
+  ];
   var SOCIAL = [
     {
       file: "kosick-instagram.png",
@@ -331,6 +341,259 @@
     return lines.join("\n");
   }
 
+  function decodeBasicEntities(value) {
+    return String(value || "")
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, "\"")
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+  }
+
+  function fileFromImageSrc(src) {
+    var value = decodeBasicEntities(cleanLine(src));
+    if (!value) return "";
+    try {
+      var url = new URL(value, "https://kc-email.vercel.app");
+      var parts = url.pathname.split("/");
+      return parts[parts.length - 1] || "";
+    } catch (error) {
+      var path = value.split("?")[0].split("#")[0];
+      var bits = path.split("/");
+      return bits[bits.length - 1] || "";
+    }
+  }
+
+  function imageRecordStatus(record) {
+    if (!record) return "loading";
+    if (record.failed) return "error";
+    if (!record.complete) return "loading";
+    if (!(record.naturalWidth > 0) || !(record.naturalHeight > 0)) return "error";
+    return "ready";
+  }
+
+  function assessPreviewImages(records, expectedFiles) {
+    var expected = expectedFiles || [];
+    var pending = [];
+    var failed = [];
+    var ready = [];
+    expected.forEach(function (file) {
+      var match = null;
+      (records || []).forEach(function (record) {
+        if (fileFromImageSrc(record && record.src) === file) match = record;
+      });
+      var status = imageRecordStatus(match);
+      if (!match || status === "loading") pending.push(file);
+      else if (status === "error") failed.push(file);
+      else ready.push(file);
+    });
+    return {
+      state: failed.length ? "error" : pending.length ? "loading" : "ready",
+      failed: failed,
+      pending: pending,
+      ready: ready
+    };
+  }
+
+  function imageStatusMessage(assessment) {
+    if (!assessment || assessment.state === "ready") return "";
+    if (assessment.state === "error") {
+      return "These signature images did not load: " + assessment.failed.join(", ") + ". Copying and downloading stay blocked until every image loads.";
+    }
+    var pending = assessment.pending.length ? ": " + assessment.pending.join(", ") : "";
+    return "Signature images are still loading" + pending + ". Copying and downloading stay blocked until they finish.";
+  }
+
+  function isMailImageProxy(raw) {
+    var url;
+    try {
+      url = new URL(raw);
+    } catch (error) {
+      return false;
+    }
+    if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    var host = url.hostname.toLowerCase();
+    var path = url.pathname.toLowerCase();
+    if (host === "googleusercontent.com" || host.endsWith(".googleusercontent.com")) return true;
+    if (host === "ggpht.com" || host.endsWith(".ggpht.com")) return true;
+    if ((host === "google.com" || host.endsWith(".google.com")) && path.indexOf("proxy") !== -1) return true;
+    if (host === "attachment.outlook.office.net" || host.endsWith(".outlook.office.net")) return true;
+    if (host.endsWith(".protection.outlook.com")) return true;
+    if (host === "yimg.com" || host.endsWith(".yimg.com") || host.endsWith(".mail.yahoo.com")) return true;
+    if ((host === "icloud.com" || host.endsWith(".icloud.com")) && (path.indexOf("proxy") !== -1 || path.indexOf("image") !== -1)) return true;
+    return false;
+  }
+
+  function classifyImageReference(raw, origin) {
+    var value = decodeBasicEntities(cleanLine(raw));
+    if (!value) return { kind: "empty", value: "" };
+    var lower = value.toLowerCase();
+    if (lower.indexOf("file:") === 0) return { kind: "file", value: value };
+    if (lower.indexOf("blob:") === 0) return { kind: "blob", value: value };
+    if (lower.indexOf("cid:") === 0) return { kind: "cid", value: value };
+    if (isMailImageProxy(value)) return { kind: "proxy", value: value };
+    try {
+      var url = new URL(value);
+      var file = fileFromImageSrc(value);
+      var expectedOrigin = String(origin || "").replace(/\/$/, "");
+      if (
+        url.origin === expectedOrigin &&
+        ASSET_FILES.indexOf(file) !== -1 &&
+        url.pathname === "/email-assets/" + file
+      ) {
+        return { kind: "expected", value: value, file: file };
+      }
+    } catch (error) {
+      return { kind: "unexpected", value: value };
+    }
+    return { kind: "unexpected", value: value };
+  }
+
+  function extractImageReferences(html) {
+    var refs = [];
+    var source = String(html || "");
+    var imgRe = /<img\b[^>]*>/gi;
+    var match;
+    while ((match = imgRe.exec(source))) {
+      var tag = match[0];
+      var srcMatch = /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i.exec(tag);
+      if (srcMatch) refs.push(srcMatch[1] || srcMatch[2] || srcMatch[3] || "");
+      else refs.push("");
+      var srcset = /\bsrcset\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(tag);
+      if (srcset) {
+        String(srcset[1] || srcset[2] || "").split(",").forEach(function (part) {
+          var url = cleanLine(part).split(/\s+/)[0];
+          if (url) refs.push(url);
+        });
+      }
+    }
+    var styleRe = /\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+    var styleMatch;
+    while ((styleMatch = styleRe.exec(source))) {
+      var css = styleMatch[1] || styleMatch[2] || "";
+      var urlRe = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)"']+))\s*\)/gi;
+      var urlMatch;
+      while ((urlMatch = urlRe.exec(css))) {
+        refs.push(urlMatch[1] || urlMatch[2] || urlMatch[3] || "");
+      }
+    }
+    return refs;
+  }
+
+  function shortRef(value) {
+    var text = String(value || "");
+    if (text.length > 160) return text.slice(0, 157) + "...";
+    return text;
+  }
+
+  function inspectInstalledSignature(html, plain, origin) {
+    var markup = String(html || "");
+    var text = String(plain || "");
+    var deliveryNote = "This checks copying. A received test email is what checks delivery. Recipients can still block remote images.";
+    var hasMarkup = /<\s*(table|img|a|div|span|html|body|p)\b/i.test(markup) || /url\s*\(/i.test(markup);
+    if (!hasMarkup) {
+      if (cleanLine(text) || cleanLine(markup)) {
+        return {
+          state: "plain",
+          ok: false,
+          found: [],
+          missing: ASSET_FILES.slice(),
+          broken: [],
+          unexpected: [],
+          inconclusive: [],
+          message: "This paste is plain text, so the image addresses were not included. Copy the signature again and paste with formatting. Use the normal paste command, not paste without formatting. " + deliveryNote,
+          details: []
+        };
+      }
+      return {
+        state: "empty",
+        ok: false,
+        found: [],
+        missing: [],
+        broken: [],
+        unexpected: [],
+        inconclusive: [],
+        message: "Paste the signature you saved in Gmail or Apple Mail. " + deliveryNote,
+        details: []
+      };
+    }
+
+    var foundMap = {};
+    var broken = [];
+    var unexpected = [];
+    var inconclusive = [];
+    extractImageReferences(markup).forEach(function (ref) {
+      var item = classifyImageReference(ref, origin);
+      if (item.kind === "expected") foundMap[item.file] = true;
+      else if (item.kind === "file" || item.kind === "blob" || item.kind === "empty") broken.push(item);
+      else if (item.kind === "cid" || item.kind === "proxy") inconclusive.push(item);
+      else unexpected.push(item);
+    });
+    var found = ASSET_FILES.filter(function (file) { return foundMap[file]; });
+    var missing = ASSET_FILES.filter(function (file) { return !foundMap[file]; });
+    var details = [];
+    if (found.length) details.push("Production image addresses found: " + found.join(", ") + ".");
+    if (missing.length) details.push("Production image addresses missing: " + missing.join(", ") + ".");
+    broken.forEach(function (item) {
+      var label = item.kind === "empty" ? "An image has an empty address." : "Unusable image address (" + item.kind + "): " + shortRef(item.value) + ".";
+      details.push(label);
+    });
+    unexpected.forEach(function (item) {
+      details.push("Unexpected image address: " + shortRef(item.value) + ".");
+    });
+    inconclusive.forEach(function (item) {
+      var kindLabel = item.kind === "cid" ? "mail attachment" : "mail-provider image proxy";
+      details.push("Inconclusive " + kindLabel + ": " + shortRef(item.value) + ". This is not treated as broken.");
+    });
+
+    var state = "ok";
+    var message = "All eight signature image addresses still point at " + String(origin || "").replace(/\/$/, "") + "/email-assets/. " + deliveryNote;
+    if (broken.length || unexpected.length) {
+      state = "problems";
+      message = "The pasted signature has image addresses that are missing, empty, local, or not the eight production files. Copy the signature again with formatting. " + deliveryNote;
+    } else if (missing.length && inconclusive.length) {
+      state = "inconclusive";
+      message = "The mail client replaced one or more image addresses with its own attachment or image proxy. That is inconclusive, not proof the images are broken. " + deliveryNote;
+    } else if (missing.length) {
+      state = "problems";
+      message = found.length
+        ? "Some production image addresses did not survive the copy. Copy the signature again with formatting. " + deliveryNote
+        : "The pasted signature has no signature images. Copy it again with formatting. " + deliveryNote;
+    }
+
+    return {
+      state: state,
+      ok: state === "ok",
+      found: found,
+      missing: missing,
+      broken: broken,
+      unexpected: unexpected,
+      inconclusive: inconclusive,
+      message: message,
+      details: details
+    };
+  }
+
+  function signatureExportProblems(html, origin) {
+    var problems = [];
+    var markup = String(html || "").replace(/^\s+/, "");
+    if (!/^<table\b/i.test(markup)) problems.push({ kind: "wrapper" });
+    if (/<\s*script\b|javascript:/i.test(markup)) problems.push({ kind: "script" });
+    var inspection = inspectInstalledSignature(markup, "", origin);
+    if (!inspection.ok) {
+      inspection.missing.forEach(function (file) {
+        problems.push({ kind: "missing", file: file });
+      });
+      inspection.broken.forEach(function (item) {
+        problems.push(item);
+      });
+      inspection.unexpected.forEach(function (item) {
+        problems.push(item);
+      });
+    }
+    return problems;
+  }
+
   function standaloneDocument(signatureHtml) {
     return (
       "<!DOCTYPE html>\n" +
@@ -355,6 +618,13 @@
     buildSignatureHtml: buildSignatureHtml,
     buildPlainText: buildPlainText,
     standaloneDocument: standaloneDocument,
+    assessPreviewImages: assessPreviewImages,
+    imageStatusMessage: imageStatusMessage,
+    extractImageReferences: extractImageReferences,
+    classifyImageReference: classifyImageReference,
+    inspectInstalledSignature: inspectInstalledSignature,
+    signatureExportProblems: signatureExportProblems,
+    ASSET_FILES: ASSET_FILES,
     WEBSITE_URL: WEBSITE_URL,
     LOCATION: LOCATION,
     OFFICE_PHONE: OFFICE_PHONE,
@@ -428,9 +698,18 @@
       office: details.office,
       assetBase: origin.origin + "/email-assets/"
     };
+    var html = buildSignatureHtml(data);
+    if (signatureExportProblems(html, origin.origin).length) {
+      return {
+        ok: false,
+        message: "The signature could not be built with the production image addresses. Reload the page and try again.",
+        focus: "",
+        problems: []
+      };
+    }
     return {
       ok: true,
-      html: buildSignatureHtml(data),
+      html: html,
       plain: buildPlainText(data)
     };
   }
@@ -451,19 +730,17 @@
     var htmlBlob = new Blob([html], { type: "text/html" });
     var textBlob = new Blob([plain], { type: "text/plain" });
     function attempt(payload) {
-      return navigator.clipboard.write([new ClipboardItem(payload)]);
+      try {
+        return navigator.clipboard.write([new ClipboardItem(payload)]);
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
     // Call write during the click so the browser still treats it as a user action.
-    var firstWrite;
-    try {
-      firstWrite = attempt({
-        "text/html": htmlBlob,
-        "text/plain": textBlob
-      });
-    } catch (error) {
-      firstWrite = Promise.reject(error);
-    }
-    return firstWrite.then(function () {
+    return attempt({
+      "text/html": htmlBlob,
+      "text/plain": textBlob
+    }).then(function () {
       return true;
     }).catch(function () {
       return attempt({
@@ -471,31 +748,57 @@
         "text/plain": Promise.resolve(textBlob)
       }).then(function () {
         return true;
+      }).catch(function () {
+        return false;
       });
-    }).catch(function () {
-      return false;
     });
   }
 
-  function fallbackCopy(preview, html) {
-    preview.innerHTML = html;
-    selectNode(preview);
-    var ok = false;
-    try {
-      ok = document.execCommand("copy");
-    } catch (error) {
-      ok = false;
-    }
-    return ok === true;
+  function copyWithEvent(html, plain, selectionNode) {
+    return new Promise(function (resolve) {
+      var wroteHtml = false;
+      var wrotePlain = false;
+      // Safari only fires the copy event when something is selected.
+      if (selectionNode) selectNode(selectionNode);
+      function onCopy(event) {
+        try {
+          if (!event.clipboardData) return;
+          event.clipboardData.setData("text/html", html);
+          event.clipboardData.setData("text/plain", plain);
+          event.preventDefault();
+          wroteHtml = true;
+          wrotePlain = true;
+        } catch (error) {
+          wroteHtml = false;
+          wrotePlain = false;
+        }
+      }
+      document.addEventListener("copy", onCopy, true);
+      var commandOk = false;
+      try {
+        commandOk = document.execCommand("copy") === true;
+      } catch (error) {
+        commandOk = false;
+      }
+      document.removeEventListener("copy", onCopy, true);
+      if (selectionNode && window.getSelection()) window.getSelection().removeAllRanges();
+      resolve(commandOk && wroteHtml && wrotePlain);
+    });
   }
 
   function init() {
     var form = document.getElementById("signature-form");
     var preview = document.getElementById("signature-preview");
-    var previewNote = document.getElementById("preview-note");
+    var imageStatus = document.getElementById("image-status");
+    var imageStatusText = document.getElementById("image-status-text");
+    var retryImages = document.getElementById("retry-images");
+    var manualCopy = document.getElementById("select-signature");
     var statusEl = document.getElementById("status");
     var nameInput = document.getElementById("name");
     var mobileInput = document.getElementById("mobile");
+    var installPaste = document.getElementById("install-paste");
+    var installResult = document.getElementById("install-result");
+    var installDetails = document.getElementById("install-details");
     var imageWatch = 0;
     var touched = { mobile: false };
 
@@ -510,43 +813,107 @@
       delete statusEl.dataset.state;
     }
 
+    function collectImageRecords() {
+      return Array.prototype.map.call(preview.querySelectorAll("img"), function (img) {
+        return {
+          src: img.currentSrc || img.getAttribute("src") || "",
+          complete: img.complete,
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          failed: img.getAttribute("data-failed") === "true"
+        };
+      });
+    }
+
+    function presentAssetFiles(records) {
+      var seen = [];
+      records.forEach(function (record) {
+        var file = fileFromImageSrc(record.src);
+        if (ASSET_FILES.indexOf(file) !== -1 && seen.indexOf(file) === -1) seen.push(file);
+      });
+      return seen;
+    }
+
+    function publishImageStatus() {
+      var origin = resolveOrigin();
+      var records = collectImageRecords();
+      var assessment = assessPreviewImages(records, presentAssetFiles(records));
+      var messages = [];
+      if (!origin.ok) messages.push(origin.message);
+      var imageMessage = imageStatusMessage(assessment);
+      if (imageMessage && (origin.ok || assessment.state === "error")) messages.push(imageMessage);
+      if (!messages.length) {
+        imageStatus.hidden = true;
+        imageStatus.dataset.state = "";
+        imageStatusText.textContent = "";
+        retryImages.hidden = true;
+        return assessment;
+      }
+      imageStatus.hidden = false;
+      imageStatus.dataset.state = assessment.state === "error" || !origin.ok ? "error" : "loading";
+      imageStatusText.textContent = messages.join(" ");
+      retryImages.hidden = assessment.state !== "error";
+      return assessment;
+    }
+
+    function imagesBlockExport() {
+      var origin = resolveOrigin();
+      if (!origin.ok) return { blocked: true, message: origin.message };
+      var assessment = assessPreviewImages(collectImageRecords(), ASSET_FILES);
+      if (assessment.state !== "ready") {
+        return { blocked: true, message: imageStatusMessage(assessment) };
+      }
+      return { blocked: false, message: "" };
+    }
+
     function render() {
       var details = readDetails();
       var origin = resolveOrigin();
       var assetBase = origin.ok ? origin.origin + "/email-assets/" : "email-assets/";
       preview.classList.remove("is-selected");
+      manualCopy.hidden = true;
       preview.innerHTML = buildSignatureHtml({
         name: details.name || "Your name",
         mobile: details.mobile,
         office: OFFICE_PHONE,
         assetBase: assetBase
       });
-      if (!origin.ok) {
-        previewNote.hidden = false;
-        previewNote.dataset.state = "error";
-        previewNote.textContent = origin.message;
-      } else {
-        previewNote.hidden = true;
-        previewNote.dataset.state = "";
-        previewNote.textContent = "";
-      }
-      watchImages(origin.ok);
+      watchImages();
     }
 
-    function watchImages(usingHost) {
-      if (!usingHost) return;
+    function watchImages() {
       var watchId = ++imageWatch;
       var images = preview.querySelectorAll("img");
-      function markFailure() {
+      function update() {
         if (watchId !== imageWatch) return;
-        previewNote.dataset.state = "error";
-        previewNote.textContent =
-          "Images did not load from the permanent host. Confirm that /email-assets/ is publicly available at that domain before you send a signature.";
+        publishImageStatus();
       }
       Array.prototype.forEach.call(images, function (img) {
-        if (img.complete && img.naturalWidth === 0) markFailure();
-        else img.addEventListener("error", markFailure);
+        img.removeAttribute("data-failed");
+        function fail() {
+          if (watchId !== imageWatch) return;
+          img.setAttribute("data-failed", "true");
+          update();
+        }
+        if (img.complete) {
+          if (!(img.naturalWidth > 0) || !(img.naturalHeight > 0)) fail();
+        } else {
+          img.addEventListener("load", update);
+          img.addEventListener("error", fail);
+        }
       });
+      update();
+    }
+
+    function retryImageLoad() {
+      var stamp = Date.now();
+      Array.prototype.forEach.call(preview.querySelectorAll("img"), function (img) {
+        var current = img.getAttribute("src") || img.src || "";
+        var base = current.split("?")[0];
+        img.removeAttribute("data-failed");
+        img.src = base + "?retry=" + stamp;
+      });
+      watchImages();
     }
 
     function showPhoneErrors(problems, force) {
@@ -597,41 +964,115 @@
       });
     });
 
-    document.getElementById("copy-signature").addEventListener("click", function () {
+    function readyExport() {
       var exported = exportSignature();
       if (!exported.ok) {
         failExport(exported);
-        return;
+        return null;
       }
       showPhoneErrors([], true);
+      var images = imagesBlockExport();
+      if (images.blocked) {
+        publishImageStatus();
+        showStatus(images.message, "error");
+        return null;
+      }
+      return exported;
+    }
+
+    var COPIED_MESSAGE =
+      "Signature copied with formatting. Paste it normally into Gmail or Apple Mail, save your settings, then use Check installed signature and send a test email.";
+
+    function copyFailed() {
+      manualCopy.hidden = false;
+      showStatus(
+        "The browser did not allow automatic copying, so nothing was copied. Choose Select signature for manual copy, then press Command+C (Mac) or Ctrl+C (Windows).",
+        "error"
+      );
+    }
+
+    function finishCopy(copied) {
+      if (copied) {
+        manualCopy.hidden = true;
+        showStatus(COPIED_MESSAGE, "success");
+        return;
+      }
+      copyFailed();
+    }
+
+    document.getElementById("copy-signature").addEventListener("click", function () {
+      var exported = readyExport();
+      if (!exported) return;
+      preview.classList.remove("is-selected");
+      var hasModernClipboard =
+        navigator.clipboard && typeof navigator.clipboard.write === "function" && typeof ClipboardItem === "function";
+      if (!hasModernClipboard) {
+        copyWithEvent(exported.html, exported.plain, preview).then(finishCopy);
+        return;
+      }
       writeClipboard(exported.html, exported.plain).then(function (copied) {
-        if (copied) {
-          preview.classList.remove("is-selected");
-          showStatus("Signature copied. Paste it into Gmail or Apple Mail.", "success");
-          return;
-        }
-        preview.innerHTML = exported.html;
-        var commandCopied = fallbackCopy(preview, exported.html);
-        if (commandCopied) {
-          preview.classList.remove("is-selected");
-          showStatus("Signature copied. Paste it into Gmail or Apple Mail.", "success");
-          return;
-        }
-        preview.classList.add("is-selected");
-        showStatus(
-          "Automatic copying did not succeed. The signature is selected. Press Command+C (Mac) or Ctrl+C (Windows).",
-          "error"
-        );
+        if (copied) return true;
+        return copyWithEvent(exported.html, exported.plain, preview);
+      }).then(finishCopy);
+    });
+
+    manualCopy.addEventListener("click", function () {
+      var exported = readyExport();
+      if (!exported) return;
+      preview.innerHTML = exported.html;
+      preview.classList.add("is-selected");
+      selectNode(preview);
+      showStatus(
+        "The signature is selected. Press Command+C (Mac) or Ctrl+C (Windows) now, then paste normally into your mail settings.",
+        "error"
+      );
+    });
+
+    retryImages.addEventListener("click", function () {
+      clearStatus();
+      retryImageLoad();
+    });
+
+    function showInstallResult(result) {
+      installResult.hidden = false;
+      installResult.dataset.state = result.state;
+      installResult.textContent = result.message;
+      installDetails.textContent = "";
+      result.details.forEach(function (line) {
+        var item = document.createElement("li");
+        item.textContent = line;
+        installDetails.appendChild(item);
       });
+      installDetails.hidden = !result.details.length;
+    }
+
+    installPaste.addEventListener("paste", function (event) {
+      var data = event.clipboardData;
+      if (!data) return;
+      event.preventDefault();
+      var html = data.getData("text/html") || "";
+      var plain = data.getData("text/plain") || "";
+      installPaste.value = plain;
+      var origin = resolveOrigin();
+      showInstallResult(inspectInstalledSignature(html, plain, origin.ok ? origin.origin : ""));
+    });
+
+    installPaste.addEventListener("input", function () {
+      var origin = resolveOrigin();
+      showInstallResult(inspectInstalledSignature("", installPaste.value, origin.ok ? origin.origin : ""));
+    });
+
+    document.getElementById("install-clear").addEventListener("click", function () {
+      installPaste.value = "";
+      installResult.hidden = true;
+      installResult.textContent = "";
+      installDetails.textContent = "";
+      installDetails.hidden = true;
     });
 
     document.getElementById("download-html").addEventListener("click", function () {
-      var exported = exportSignature();
-      if (!exported.ok) {
-        failExport(exported);
-        return;
-      }
-      showPhoneErrors([], true);
+      var exported = readyExport();
+      if (!exported) return;
       var blob = new Blob([standaloneDocument(exported.html)], { type: "text/html;charset=utf-8" });
       var url = URL.createObjectURL(blob);
       var link = document.createElement("a");

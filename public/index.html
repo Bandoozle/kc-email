@@ -252,7 +252,80 @@
 
     .button-secondary:hover { border-color: #8a8a8a; background: #f7f7f7; }
 
-    .preview-note { margin-top: 0; margin-bottom: 12px; }
+    .image-status {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f7f7f7;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .image-status[data-state="error"] {
+      border-color: #d9b3b3;
+      background: #fbf1f1;
+      color: var(--danger);
+      font-weight: 650;
+    }
+
+    .image-status p { margin: 0; overflow-wrap: anywhere; }
+
+    .image-status button { margin-top: 8px; }
+
+    .button-small {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+    }
+
+    .manual-copy { width: 100%; margin-top: 10px; }
+
+    .install-body {
+      padding: 0 14px 14px;
+      font-size: 0.92rem;
+    }
+
+    .install-body > p { margin: 0 0 10px; color: var(--muted); }
+
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d5cbbd;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 16px;
+      resize: vertical;
+    }
+
+    .install-actions { margin-top: 8px; }
+
+    .install-result {
+      margin: 10px 0 0;
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .install-result[data-state="ok"] { color: var(--ok); }
+
+    .install-result[data-state="problems"],
+    .install-result[data-state="plain"] { color: var(--danger); }
+
+    .install-result[data-state="inconclusive"] { color: var(--gold-ink); }
+
+    .install-details {
+      margin: 8px 0 0;
+      padding-left: 1.1rem;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .install-details li { margin-bottom: 4px; }
+
+    .install-body > .install-note { margin: 10px 0 0; }
 
     .preview-scroll {
       overflow-x: auto;
@@ -267,7 +340,7 @@
     .signature-preview { display: inline-block; min-width: min-content; }
 
     .signature-preview.is-selected {
-      outline: 2px solid var(--gold);
+      outline: 2px solid #8a8a8a;
       outline-offset: 6px;
     }
 
@@ -339,7 +412,7 @@
     </div>
   </header>
   <main class="page">
-    <p class="lede">Enter your contact details, check the preview, then copy the signature into Gmail or Apple Mail. Details stay in this browser. Nothing is uploaded or stored.</p>
+    <p class="lede">Enter your contact details and copy the signature. Paste it normally into Gmail or Apple Mail, save your settings, check the installed signature below, then send yourself a test email. Details stay in this browser. Nothing is uploaded or stored.</p>
     <div class="workspace">
       <form id="signature-form" class="panel" autocomplete="off">
         <h2>Your details</h2>
@@ -368,7 +441,10 @@
       <div class="preview-column panel">
         <section class="preview-panel" aria-labelledby="preview-heading">
           <h2 id="preview-heading">Preview</h2>
-          <p id="preview-note" class="preview-note" hidden></p>
+          <div id="image-status" class="image-status" role="alert" hidden>
+            <p id="image-status-text"></p>
+            <button id="retry-images" class="button-secondary button-small" type="button" hidden>Retry images</button>
+          </div>
           <div class="preview-scroll">
             <div id="signature-preview" class="signature-preview" tabindex="-1"></div>
           </div>
@@ -379,6 +455,7 @@
             <button id="download-html" class="button-secondary" type="button">Download HTML</button>
           </div>
           <p id="status" class="status" role="status" aria-live="assertive" aria-atomic="true"></p>
+          <button id="select-signature" class="button-secondary manual-copy" type="button" hidden>Select signature for manual copy</button>
         </div>
         <div class="guides">
           <details class="guide">
@@ -386,9 +463,10 @@
             <ol>
               <li>Copy the signature.</li>
               <li>Settings → See all settings → General → Signature.</li>
-              <li>Create a signature and paste normally.</li>
+              <li>Create a signature and paste normally (Ctrl+V or Command+V). Do not use paste without formatting.</li>
               <li>Choose defaults for new messages and replies.</li>
               <li>Save Changes.</li>
+              <li>Open the saved signature, copy it, and paste it into Check installed signature below.</li>
               <li>Send a test email and inspect the received message.</li>
             </ol>
           </details>
@@ -399,11 +477,26 @@
               <li>Mail → Settings → Signatures.</li>
               <li>Select the work account and add a signature.</li>
               <li>Disable “Always match my default message font” if shown.</li>
-              <li>Paste normally, preserving formatting.</li>
-              <li>Set the default signature.</li>
+              <li>Paste normally (Command+V), keeping the formatting.</li>
+              <li>Set the default signature, then close Settings so it saves.</li>
+              <li>Copy the saved signature and paste it into Check installed signature below.</li>
               <li>Send a test email and inspect the received message.</li>
               <li>If formatting is lost, open the downloaded HTML in Safari and copy the rendered signature again.</li>
             </ol>
+          </details>
+          <details class="guide" id="install-check">
+            <summary>Check installed signature</summary>
+            <div class="install-body">
+              <p>After saving your signature, copy it from Gmail or Apple Mail and paste it here. The pasted markup is read as text and never displayed as HTML.</p>
+              <label for="install-paste">Paste your saved signature</label>
+              <textarea id="install-paste" rows="4" spellcheck="false" placeholder="Paste with Ctrl+V or Command+V"></textarea>
+              <div class="actions install-actions">
+                <button id="install-clear" class="button-secondary button-small" type="button">Clear</button>
+              </div>
+              <p id="install-result" class="install-result" role="status" aria-live="polite" hidden></p>
+              <ul id="install-details" class="install-details" hidden></ul>
+              <p class="install-note">This checks what was copied into your mail settings. Only a received test email shows what recipients get, and recipients can still block images.</p>
+            </div>
           </details>
         </div>
       </div>
